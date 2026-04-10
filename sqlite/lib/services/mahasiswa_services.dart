@@ -1,5 +1,5 @@
 import '../database/database_helper.dart';
-import '../models/mahasiswa.dart';
+import '../models/mahasiswa1.dart';
 
 class MahasiswaService {
 

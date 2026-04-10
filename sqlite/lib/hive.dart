@@ -1,28 +1,12 @@
 import 'package:flutter/material.dart';
+// import 'pages/mahasiswa_pages.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import '../models/mahasiswa.dart';
-import '../models/prodi.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
 
   await Hive.initFlutter();
-
-  Hive.registerAdapter(MahasiswaAdapter());
-  Hive.registerAdapter(ProdiAdapter());
-
-  await Hive.openBox<Mahasiswa>('mahasiswaBox');
-  await Hive.openBox<Prodi>('prodiBox');
-
-  var prodiBox = Hive.box<Prodi>('prodiBox');
-
-  if (prodiBox.isEmpty) {
-    prodiBox.addAll([
-      Prodi(namaProdi: "Informatika"),
-      Prodi(namaProdi: "Biologi"),
-      Prodi(namaProdi: "Fisika"),
-    ]);
-  }
+  await Hive.openBox('mahasiswaBox');
 
   runApp(MyApp());
 }
@@ -42,27 +26,26 @@ class MahasiswaPage extends StatefulWidget {
   _MahasiswaPageState createState() => _MahasiswaPageState();
 }
 
-class _MahasiswaPageState extends State<MahasiswaPage> {
-  final Box<Mahasiswa> box = Hive.box<Mahasiswa>('mahasiswaBox');
-  final Box<Prodi> prodiBox = Hive.box<Prodi>('prodiBox');
+class _MahasiswaPageState extends State {
+  final box = Hive.box('mahasiswaBox');
 
   final namaController = TextEditingController();
   final nimController = TextEditingController();
+  final prodiController = TextEditingController();
 
-  int? editIndex;
-  int? selectedProdiId;
+  int? editIndex; // null = tambah, ada nilai = edit
 
   void saveData() {
-    final mahasiswa = Mahasiswa(
-      nama: namaController.text,
-      nim: nimController.text,
-      prodiId: selectedProdiId!,
-    );
+    final data = {
+      'nama': namaController.text,
+      'nim': nimController.text,
+      'prodi': prodiController.text,
+    };
 
     if (editIndex == null) {
-      box.add(mahasiswa);
+      box.add(data);
     } else {
-      box.putAt(editIndex!, mahasiswa);
+      box.putAt(editIndex!, data);
       editIndex = null;
     }
 
@@ -70,12 +53,11 @@ class _MahasiswaPageState extends State<MahasiswaPage> {
   }
 
   void editData(int index) {
-    final data = box.getAt(index)!;
-    final prodi = prodiBox.getAt(data.prodiId);
+    final data = box.getAt(index);
 
-    namaController.text = data.nama;
-    nimController.text = data.nim;
-    selectedProdiId = data.prodiId;
+    namaController.text = data['nama'];
+    nimController.text = data['nim'];
+    prodiController.text = data['prodi'];
 
     setState(() {
       editIndex = index;
@@ -89,7 +71,7 @@ class _MahasiswaPageState extends State<MahasiswaPage> {
   void clearForm() {
     namaController.clear();
     nimController.clear();
-    selectedProdiId = null;
+    prodiController.clear();
 
     setState(() {
       editIndex = null;
@@ -104,6 +86,7 @@ class _MahasiswaPageState extends State<MahasiswaPage> {
         padding: EdgeInsets.all(12),
         child: Column(
           children: [
+            // FORM INPUT
             TextField(
               controller: namaController,
               decoration: InputDecoration(labelText: "Nama"),
@@ -112,24 +95,9 @@ class _MahasiswaPageState extends State<MahasiswaPage> {
               controller: nimController,
               decoration: InputDecoration(labelText: "NIM"),
             ),
-
-            SizedBox(height: 10),
-
-            DropdownButtonFormField<int>(
-              value: selectedProdiId,
-              hint: Text("Pilih Prodi"),
-              items: List.generate(prodiBox.length, (index) {
-                final prodi = prodiBox.getAt(index);
-                return DropdownMenuItem(
-                  value: index,
-                  child: Text(prodi!.namaProdi),
-                );
-              }),
-              onChanged: (value) {
-                setState(() {
-                  selectedProdiId = value;
-                });
-              },
+            TextField(
+              controller: prodiController,
+              decoration: InputDecoration(labelText: "Prodi"),
             ),
 
             SizedBox(height: 10),
@@ -142,19 +110,17 @@ class _MahasiswaPageState extends State<MahasiswaPage> {
                 ),
                 SizedBox(width: 10),
                 if (editIndex != null)
-                  ElevatedButton(
-                    onPressed: clearForm,
-                    child: Text("Batal"),
-                  ),
+                  ElevatedButton(onPressed: clearForm, child: Text("Batal")),
               ],
             ),
 
             SizedBox(height: 20),
 
+            // LIST DATA
             Expanded(
               child: ValueListenableBuilder(
                 valueListenable: box.listenable(),
-                builder: (context, Box<Mahasiswa> box, _) {
+                builder: (context, Box box, _) {
                   if (box.isEmpty) {
                     return Center(child: Text("Belum ada data"));
                   }
@@ -162,14 +128,13 @@ class _MahasiswaPageState extends State<MahasiswaPage> {
                   return ListView.builder(
                     itemCount: box.length,
                     itemBuilder: (context, index) {
-                      final data = box.getAt(index)!;
-                      final prodi = prodiBox.getAt(data.prodiId);
+                      final data = box.getAt(index);
 
                       return Card(
                         child: ListTile(
-                          title: Text(data.nama),
+                          title: Text(data['nama']),
                           subtitle: Text(
-                            "NIM: ${data.nim} | ${prodi?.namaProdi ?? '-'}",
+                            "NIM: ${data['nim']} | ${data['prodi']}",
                           ),
                           trailing: Row(
                             mainAxisSize: MainAxisSize.min,

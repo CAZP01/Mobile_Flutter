@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../services/mahasiswa_services.dart';
-import '../models/mahasiswa.dart';
+import '../models/mahasiswa1.dart';
 
 class MahasiswaPage extends StatefulWidget {
   @override
